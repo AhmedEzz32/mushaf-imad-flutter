@@ -83,3 +83,14 @@ export 'src/ui/history/reading_history_view_model.dart';
 export 'src/ui/settings/settings_view_model.dart';
 export 'src/ui/theme/theme_view_model.dart';
 export 'src/ui/theme/reading_theme.dart';
+
+// Mushaf UI Widgets
+export 'src/ui/mushaf/mushaf_page_view.dart';
+export 'src/ui/mushaf/quran_page_widget.dart';
+export 'src/ui/mushaf/quran_line_image.dart';
+export 'src/ui/mushaf/verse_fasel.dart';
+export 'src/ui/mushaf/chapter_index_drawer.dart';
+
+// Quran Data
+export 'src/data/quran/quran_data_provider.dart';
+export 'src/data/quran/quran_metadata.dart';
