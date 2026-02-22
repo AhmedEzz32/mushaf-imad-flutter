@@ -7,20 +7,36 @@ void main() async {
   runApp(const MushafApp());
 }
 
-class MushafApp extends StatelessWidget {
+class MushafApp extends StatefulWidget {
   const MushafApp({super.key});
 
   @override
+  State<MushafApp> createState() => _MushafAppState();
+}
+
+class _MushafAppState extends State<MushafApp> {
+  final _themeNotifier = MushafThemeNotifier();
+
+  @override
+  void dispose() {
+    _themeNotifier.dispose();
+    super.dispose();
+  }
+
+  @override
   Widget build(BuildContext context) {
-    return MaterialApp(
-      title: 'MushafImad Library',
-      debugShowCheckedModeBanner: false,
-      theme: ThemeData(
-        colorSchemeSeed: const Color(0xFF6750A4),
-        useMaterial3: true,
-        brightness: Brightness.light,
+    return MushafThemeScope(
+      notifier: _themeNotifier,
+      child: MaterialApp(
+        title: 'MushafImad Library',
+        debugShowCheckedModeBanner: false,
+        theme: ThemeData(
+          colorSchemeSeed: const Color(0xFF6750A4),
+          useMaterial3: true,
+          brightness: Brightness.light,
+        ),
+        home: const LibraryHomePage(),
       ),
-      home: const LibraryHomePage(),
     );
   }
 }
@@ -72,7 +88,7 @@ class LibraryHomePage extends StatelessWidget {
             icon: Icons.favorite,
             title: 'Bookmarks',
             subtitle: 'BookmarkRepository - Save & manage',
-            onTap: () => _push(context, const BookmarksPage()),
+            onTap: () => _push(context, const BookmarksPageWrapper()),
           ),
           _MenuCard(
             icon: Icons.history,
@@ -104,13 +120,19 @@ class LibraryHomePage extends StatelessWidget {
             icon: Icons.search,
             title: 'Search',
             subtitle: 'Search verses and chapters',
-            onTap: () => _push(context, const SearchDemoPage()),
+            onTap: () => _push(context, const SearchPageWrapper()),
           ),
           _MenuCard(
             icon: Icons.palette,
             title: 'Theme Preview',
             subtitle: 'Reading theme color schemes',
-            onTap: () => _push(context, const ThemePreviewPage()),
+            onTap: () => _push(context, const ThemePreviewWrapper()),
+          ),
+          _MenuCard(
+            icon: Icons.settings,
+            title: 'Settings',
+            subtitle: 'Theme, data, and preferences',
+            onTap: () => _push(context, const SettingsPage()),
           ),
           _MenuCard(
             icon: Icons.book,
@@ -403,37 +425,24 @@ class VersesPage extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Bookmarks Page
+// Bookmarks Page — Using BookmarkListWidget
 // ──────────────────────────────────────────────────────────────────────────────
 
-class BookmarksPage extends StatelessWidget {
-  const BookmarksPage({super.key});
+class BookmarksPageWrapper extends StatelessWidget {
+  const BookmarksPageWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Bookmarks')),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.favorite, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
-              Text(
-                'Bookmark Repository',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Bookmarks will be available after Hive DAO integration.\n'
-                'Features: Save verse bookmarks, organize by chapter, search bookmarks.',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+      body: BookmarkListWidget(
+        onBookmarkTap: (page) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => _MushafAtPage(page: page, title: 'Bookmark'),
+            ),
+          );
+        },
       ),
     );
   }
@@ -526,104 +535,58 @@ class PreferencesPage extends StatelessWidget {
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Search Demo
+// Search Page — Using SearchPage widget
 // ──────────────────────────────────────────────────────────────────────────────
 
-class SearchDemoPage extends StatelessWidget {
-  const SearchDemoPage({super.key});
+class SearchPageWrapper extends StatelessWidget {
+  const SearchPageWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Search')),
-      body: const Center(
-        child: Padding(
-          padding: EdgeInsets.all(32),
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Icon(Icons.search, size: 64, color: Colors.grey),
-              SizedBox(height: 16),
-              Text(
-                'Search',
-                style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-              ),
-              SizedBox(height: 8),
-              Text(
-                'Search will be available after database integration.\n'
-                'Features: Search verses by text, search chapters by name.',
-                textAlign: TextAlign.center,
-              ),
-            ],
-          ),
-        ),
+      body: SearchPage(
+        onVerseSelected: (page) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => _MushafAtPage(page: page, title: 'Search Result'),
+            ),
+          );
+        },
+        onChapterSelected: (page) {
+          Navigator.of(context).push(
+            MaterialPageRoute(
+              builder: (_) => _MushafAtPage(page: page, title: 'Chapter'),
+            ),
+          );
+        },
       ),
     );
   }
 }
 
 // ──────────────────────────────────────────────────────────────────────────────
-// Theme Preview Page
+// Theme Preview — Using ThemePickerWidget
 // ──────────────────────────────────────────────────────────────────────────────
 
-class ThemePreviewPage extends StatelessWidget {
-  const ThemePreviewPage({super.key});
+class ThemePreviewWrapper extends StatelessWidget {
+  const ThemePreviewWrapper({super.key});
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(title: const Text('Theme Preview')),
-      body: ListView(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16),
-        children: [
-          _themeCard('Light', const Color(0xFFFDF8F0), const Color(0xFF2D1B0E)),
-          _themeCard('Sepia', const Color(0xFFF5E6CA), const Color(0xFF3E2723)),
-          _themeCard('Dark', const Color(0xFF1A1A2E), const Color(0xFFE0D6C2)),
-          _themeCard(
-            'AMOLED',
-            const Color(0xFF000000),
-            const Color(0xFFE0E0E0),
-          ),
-          _themeCard('Olive', const Color(0xFFF0EDE0), const Color(0xFF33402E)),
-          _themeCard('Blue', const Color(0xFFECF0F6), const Color(0xFF1A2744)),
-        ],
-      ),
-    );
-  }
-
-  Widget _themeCard(String name, Color bg, Color text) {
-    return Card(
-      margin: const EdgeInsets.only(bottom: 12),
-      child: Container(
-        padding: const EdgeInsets.all(24),
-        decoration: BoxDecoration(
-          color: bg,
-          borderRadius: BorderRadius.circular(12),
-        ),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            Text(
-              name,
-              style: TextStyle(
-                fontSize: 16,
-                fontWeight: FontWeight.bold,
-                color: text,
+        child: ThemePickerWidget(
+          onThemeChanged: (theme) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('Selected theme: ${theme.name}'),
+                duration: const Duration(seconds: 1),
               ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'بِسْمِ اللَّهِ الرَّحْمَنِ الرَّحِيمِ',
-              style: TextStyle(fontSize: 22, color: text, fontFamily: 'serif'),
-              textDirection: TextDirection.rtl,
-            ),
-            const SizedBox(height: 4),
-            Text(
-              'الْحَمْدُ لِلَّهِ رَبِّ الْعَالَمِينَ',
-              style: TextStyle(fontSize: 22, color: text, fontFamily: 'serif'),
-              textDirection: TextDirection.rtl,
-            ),
-          ],
+            );
+          },
         ),
       ),
     );

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../../data/quran/quran_data_provider.dart';
 import '../../data/quran/quran_metadata.dart';
 import '../../data/quran/verse_data_provider.dart';
+import '../theme/reading_theme.dart';
 import 'quran_line_image.dart';
 
 /// Renders a single Quran page — 15 line images with a page header.
@@ -18,11 +19,15 @@ class QuranPageWidget extends StatefulWidget {
   /// Called when a verse is tapped. Provides (chapterNumber, verseNumber).
   final void Function(int chapterNumber, int verseNumber)? onVerseTap;
 
+  /// Reading theme data for colors. Defaults to light theme.
+  final ReadingThemeData? themeData;
+
   const QuranPageWidget({
     super.key,
     required this.pageNumber,
     this.selectedVerseKey,
     this.onVerseTap,
+    this.themeData,
   });
 
   @override
@@ -58,9 +63,11 @@ class _QuranPageWidgetState extends State<QuranPageWidget> {
   Widget build(BuildContext context) {
     final verseProvider = VerseDataProvider.instance;
     final pageVerses = verseProvider.getVersesForPage(widget.pageNumber);
+    final theme =
+        widget.themeData ?? ReadingThemeData.fromTheme(ReadingTheme.light);
 
     return Container(
-      color: const Color(0xFFFDF8F0), // Warm paper background
+      color: theme.backgroundColor,
       child: Column(
         children: [
           // Page header
@@ -68,10 +75,14 @@ class _QuranPageWidgetState extends State<QuranPageWidget> {
             chapters: _chapters,
             pageNumber: widget.pageNumber,
             juzNumber: _juz,
+            themeData: theme,
           ),
 
           // Divider
-          Container(height: 1, color: const Color(0xFFD4C5A9)),
+          Container(
+            height: 1,
+            color: theme.secondaryTextColor.withValues(alpha: 0.3),
+          ),
 
           // 15 line images
           Expanded(
@@ -123,6 +134,8 @@ class _QuranPageWidgetState extends State<QuranPageWidget> {
                         line: line,
                         highlights: highlights,
                         markers: markers,
+                        highlightColor: theme.highlightColor,
+                        textColor: theme.textColor,
                         onTapUpExact: (tapRatio) {
                           if (widget.onVerseTap == null || versesOnLine.isEmpty)
                             return;
@@ -173,11 +186,13 @@ class _PageHeader extends StatelessWidget {
   final List<ChapterData> chapters;
   final int pageNumber;
   final int juzNumber;
+  final ReadingThemeData themeData;
 
   const _PageHeader({
     required this.chapters,
     required this.pageNumber,
     required this.juzNumber,
+    required this.themeData,
   });
 
   @override
@@ -187,7 +202,7 @@ class _PageHeader extends StatelessWidget {
         : '';
 
     return Container(
-      color: const Color(0xFFF5ECD7),
+      color: themeData.surfaceColor,
       padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
       child: Directionality(
         textDirection: TextDirection.rtl,
@@ -196,9 +211,9 @@ class _PageHeader extends StatelessWidget {
             // Juz (right side in RTL)
             Text(
               'جزء ${QuranDataProvider.toArabicNumerals(juzNumber)}',
-              style: const TextStyle(
+              style: TextStyle(
                 fontSize: 13,
-                color: Color(0xFF8B7355),
+                color: themeData.secondaryTextColor,
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -208,9 +223,9 @@ class _PageHeader extends StatelessWidget {
               child: Text(
                 chapterName,
                 textAlign: TextAlign.center,
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 16,
-                  color: Color(0xFF5C4033),
+                  color: themeData.textColor,
                   fontWeight: FontWeight.w700,
                   fontFamily: 'serif',
                 ),
@@ -221,14 +236,14 @@ class _PageHeader extends StatelessWidget {
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 4),
               decoration: BoxDecoration(
-                color: const Color(0xFFE8DCC8),
+                color: themeData.secondaryTextColor.withValues(alpha: 0.15),
                 borderRadius: BorderRadius.circular(12),
               ),
               child: Text(
                 '${QuranDataProvider.toArabicNumerals(pageNumber)} / ٦٠٤',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 12,
-                  color: Color(0xFF8B7355),
+                  color: themeData.secondaryTextColor,
                   fontWeight: FontWeight.w600,
                 ),
               ),

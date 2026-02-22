@@ -5,6 +5,8 @@ import '../../domain/repository/audio_repository.dart';
 import '../../data/quran/quran_data_provider.dart';
 import '../../data/quran/verse_data_provider.dart';
 import '../player/audio_player_bar.dart';
+import '../theme/reading_theme.dart';
+import '../theme/mushaf_theme_scope.dart';
 import 'quran_page_widget.dart';
 
 /// MushafPageView — the main Mushaf reader screen.
@@ -33,6 +35,9 @@ class MushafPageView extends StatefulWidget {
   /// Callback for opening chapter index.
   final VoidCallback? onOpenChapterIndex;
 
+  /// Reading theme for the Mushaf pages. Defaults to light.
+  final ReadingTheme readingTheme;
+
   const MushafPageView({
     super.key,
     this.initialPage = 1,
@@ -41,6 +46,7 @@ class MushafPageView extends StatefulWidget {
     this.showPageInfo = true,
     this.showAudioPlayer = true,
     this.onOpenChapterIndex,
+    this.readingTheme = ReadingTheme.light,
   });
 
   @override
@@ -145,8 +151,13 @@ class MushafPageViewState extends State<MushafPageView> {
     final juz = dataProvider.getJuzForPage(_currentPage);
     final chapterName = chapters.isNotEmpty ? chapters.first.arabicTitle : '';
 
+    // Read theme from scope if available, otherwise use the explicit parameter
+    final scopeNotifier = MushafThemeScope.maybeOf(context);
+    final effectiveTheme = scopeNotifier?.readingTheme ?? widget.readingTheme;
+    final effectiveThemeData = ReadingThemeData.fromTheme(effectiveTheme);
+
     return Scaffold(
-      backgroundColor: const Color(0xFFFDF8F0),
+      backgroundColor: effectiveThemeData.backgroundColor,
       body: Column(
         children: [
           Expanded(
@@ -164,6 +175,7 @@ class MushafPageViewState extends State<MushafPageView> {
                       final pageNumber = QuranDataProvider.totalPages - index;
                       return QuranPageWidget(
                         pageNumber: pageNumber,
+                        themeData: effectiveThemeData,
                         selectedVerseKey: pageNumber == _currentPage
                             ? _selectedVerseKey
                             : null,
@@ -220,9 +232,9 @@ class MushafPageViewState extends State<MushafPageView> {
                           icon: Container(
                             padding: const EdgeInsets.all(8),
                             decoration: BoxDecoration(
-                              color: const Color(
-                                0xFFF5ECD7,
-                              ).withValues(alpha: 0.95),
+                              color: effectiveThemeData.surfaceColor.withValues(
+                                alpha: 0.95,
+                              ),
                               shape: BoxShape.circle,
                               boxShadow: [
                                 BoxShadow(
@@ -231,9 +243,9 @@ class MushafPageViewState extends State<MushafPageView> {
                                 ),
                               ],
                             ),
-                            child: const Icon(
+                            child: Icon(
                               Icons.arrow_back,
-                              color: Color(0xFF5C4033),
+                              color: effectiveThemeData.textColor,
                               size: 20,
                             ),
                           ),

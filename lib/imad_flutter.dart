@@ -92,6 +92,13 @@ export 'src/ui/mushaf/quran_line_image.dart';
 export 'src/ui/mushaf/verse_fasel.dart';
 export 'src/ui/mushaf/chapter_index_drawer.dart';
 
+// Feature UI Widgets
+export 'src/ui/bookmarks/bookmark_list_widget.dart';
+export 'src/ui/search/search_page.dart';
+export 'src/ui/settings/settings_page.dart';
+export 'src/ui/theme/theme_picker_widget.dart';
+export 'src/ui/theme/mushaf_theme_scope.dart';
+
 // Quran Data
 export 'src/data/quran/quran_data_provider.dart';
 export 'src/data/quran/quran_metadata.dart';

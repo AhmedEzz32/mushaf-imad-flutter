@@ -1,11 +1,16 @@
 import 'package:flutter/material.dart';
 import '../../data/quran/quran_data_provider.dart';
 import '../../data/quran/quran_metadata.dart';
+import '../theme/mushaf_theme_scope.dart';
+import '../theme/reading_theme.dart';
 
 /// Drawer showing all 114 surahs for quick navigation.
 ///
 /// Each surah shows its Arabic title, English title, and starting page.
 /// Tapping a surah navigates to its starting page.
+///
+/// When a [MushafThemeScope] ancestor exists, colors are derived from the
+/// active [ReadingThemeData] (matching Android's `MushafColors` pattern).
 class ChapterIndexDrawer extends StatelessWidget {
   /// Callback when a chapter is selected, passes the starting page number.
   final ValueChanged<int> onChapterSelected;
@@ -26,8 +31,14 @@ class ChapterIndexDrawer extends StatelessWidget {
     final currentChapters = dataProvider.getChaptersForPage(currentPage);
     final currentChapterNumbers = currentChapters.map((c) => c.number).toSet();
 
+    // Read theme from scope (matching Android LocalMushafColors pattern)
+    final scopeNotifier = MushafThemeScope.maybeOf(context);
+    final theme =
+        scopeNotifier?.themeData ??
+        ReadingThemeData.fromTheme(ReadingTheme.light);
+
     return Drawer(
-      backgroundColor: const Color(0xFFFDF8F0),
+      backgroundColor: theme.backgroundColor,
       child: Column(
         children: [
           // Header
@@ -39,7 +50,7 @@ class ChapterIndexDrawer extends StatelessWidget {
               right: 20,
               bottom: 16,
             ),
-            decoration: const BoxDecoration(color: Color(0xFF8B7355)),
+            decoration: BoxDecoration(color: theme.accentColor),
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
@@ -72,24 +83,30 @@ class ChapterIndexDrawer extends StatelessWidget {
               children: [
                 Text(
                   'Page ${QuranDataProvider.toArabicNumerals(currentPage)}',
-                  style: const TextStyle(
+                  style: TextStyle(
                     fontSize: 13,
-                    color: Color(0xFF8B7355),
+                    color: theme.secondaryTextColor,
                     fontWeight: FontWeight.w600,
                   ),
                 ),
                 const Spacer(),
-                const Icon(Icons.swipe, size: 16, color: Color(0xFF8B7355)),
+                Icon(Icons.swipe, size: 16, color: theme.secondaryTextColor),
                 const SizedBox(width: 4),
-                const Text(
+                Text(
                   'Tap to jump',
-                  style: TextStyle(fontSize: 12, color: Color(0xFF8B7355)),
+                  style: TextStyle(
+                    fontSize: 12,
+                    color: theme.secondaryTextColor,
+                  ),
                 ),
               ],
             ),
           ),
 
-          const Divider(height: 1, color: Color(0xFFD4C5A9)),
+          Divider(
+            height: 1,
+            color: theme.secondaryTextColor.withValues(alpha: 0.3),
+          ),
 
           // Chapter list
           Expanded(
@@ -103,6 +120,7 @@ class ChapterIndexDrawer extends StatelessWidget {
                 return _ChapterListItem(
                   chapter: chapter,
                   isActive: isActive,
+                  themeData: theme,
                   onTap: () {
                     onChapterSelected(chapter.startPage);
                     Navigator.of(context).pop();
@@ -120,18 +138,22 @@ class ChapterIndexDrawer extends StatelessWidget {
 class _ChapterListItem extends StatelessWidget {
   final ChapterData chapter;
   final bool isActive;
+  final ReadingThemeData themeData;
   final VoidCallback onTap;
 
   const _ChapterListItem({
     required this.chapter,
     required this.isActive,
+    required this.themeData,
     required this.onTap,
   });
 
   @override
   Widget build(BuildContext context) {
     return Material(
-      color: isActive ? const Color(0xFFEDE5D3) : Colors.transparent,
+      color: isActive
+          ? themeData.highlightColor.withValues(alpha: 0.3)
+          : Colors.transparent,
       child: InkWell(
         onTap: onTap,
         child: Padding(
@@ -145,9 +167,12 @@ class _ChapterListItem extends StatelessWidget {
                 decoration: BoxDecoration(
                   shape: BoxShape.circle,
                   color: isActive
-                      ? const Color(0xFF8B7355)
-                      : const Color(0xFFF5ECD7),
-                  border: Border.all(color: const Color(0xFFD4C5A9), width: 1),
+                      ? themeData.accentColor
+                      : themeData.surfaceColor,
+                  border: Border.all(
+                    color: themeData.secondaryTextColor.withValues(alpha: 0.3),
+                    width: 1,
+                  ),
                 ),
                 child: Center(
                   child: Text(
@@ -155,7 +180,7 @@ class _ChapterListItem extends StatelessWidget {
                     style: TextStyle(
                       fontSize: 12,
                       fontWeight: FontWeight.w600,
-                      color: isActive ? Colors.white : const Color(0xFF5C4033),
+                      color: isActive ? Colors.white : themeData.textColor,
                     ),
                   ),
                 ),
@@ -175,7 +200,7 @@ class _ChapterListItem extends StatelessWidget {
                         fontWeight: isActive
                             ? FontWeight.w700
                             : FontWeight.w500,
-                        color: const Color(0xFF5C4033),
+                        color: themeData.textColor,
                         fontFamily: 'serif',
                       ),
                       textDirection: TextDirection.rtl,
@@ -184,7 +209,9 @@ class _ChapterListItem extends StatelessWidget {
                       chapter.englishTitle,
                       style: TextStyle(
                         fontSize: 12,
-                        color: const Color(0xFF8B7355).withValues(alpha: 0.8),
+                        color: themeData.secondaryTextColor.withValues(
+                          alpha: 0.8,
+                        ),
                       ),
                     ),
                   ],
@@ -197,9 +224,9 @@ class _ChapterListItem extends StatelessWidget {
                 children: [
                   Text(
                     'p. ${chapter.startPage}',
-                    style: const TextStyle(
+                    style: TextStyle(
                       fontSize: 12,
-                      color: Color(0xFF8B7355),
+                      color: themeData.secondaryTextColor,
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -207,7 +234,9 @@ class _ChapterListItem extends StatelessWidget {
                     '${chapter.versesCount} ayat',
                     style: TextStyle(
                       fontSize: 11,
-                      color: const Color(0xFF8B7355).withValues(alpha: 0.7),
+                      color: themeData.secondaryTextColor.withValues(
+                        alpha: 0.7,
+                      ),
                     ),
                   ),
                 ],

@@ -12,12 +12,13 @@
 - [x] Add `setupMushafWithHive()` convenience function
 
 ## Phase 2: Audio Playback
-- [ ] Add `just_audio` and `audio_service` to `pubspec.yaml`
-- [ ] Create `FlutterAudioPlayer` service wrapping `just_audio`
-- [ ] Integrate `audio_service` for background playback & media notifications
-- [ ] Update `DefaultAudioRepository` to use real audio player
-- [ ] Implement chapter streaming from reciter URLs
-- [ ] Implement verse-level highlighting sync via `AyahTimingService`
+- [x] Add `just_audio` and `audio_service` to `pubspec.yaml`
+- [x] Create `FlutterAudioPlayer` service wrapping `just_audio`
+- [x] Integrate `audio_service` for background playback & media notifications
+- [x] Update `DefaultAudioRepository` to use real audio player
+- [x] Implement chapter streaming from reciter URLs
+- [x] Implement verse-level highlighting sync via `AyahTimingService`
+
 
 ## Phase 3: Flutter UI Widgets
 - [x] Create `MushafPageView` widget (PageView with 604 Quran pages)
@@ -28,11 +29,12 @@
 - [x] Create `QuranDataProvider` (page→chapter/juz lookups)
 - [x] Create `quran_metadata.dart` (114 chapters + 30 juz boundaries)
 - [x] Create `AudioPlayerBar` widget (bottom player controls)
-- [ ] Create `BookmarkListWidget`
-- [ ] Create `SearchPage` widget
-- [ ] Create `SettingsPage` widget
-- [ ] Create `ThemePickerWidget`
-- [ ] Apply `ReadingTheme` colors to Mushaf pages
+- [x] Create `BookmarkListWidget`
+- [x] Create `SearchPage` widget
+- [x] Create `SettingsPage` widget
+- [x] Create `ThemePickerWidget`
+- [x] Apply `ReadingTheme` colors to Mushaf pages
+- [x] Create `MushafThemeScope` (InheritedNotifier for shared theme state)
 
 ## Phase 4: Preferences Persistence & UI
 - [ ] Replace in-memory `DefaultPreferencesRepository` with Hive/SharedPreferences-backed version
@@ -41,6 +43,7 @@
 - [ ] Create `SettingsPage` widget with working controls that reflect on actual UI
 - [ ] Theme switching (light/dark/sepia/AMOLED) should update Mushaf page background + text color
 - [ ] Font size changes should apply immediately
+- [ ] Add buttons to show/hide `AudioPlayerBar` 
 
 ## Phase 5: Data Import/Export
 - [ ] Complete `DefaultDataExportRepository` implementation
@@ -63,6 +66,7 @@
 - [ ] Performance optimization for page pre-caching
 - [ ] RTL layout support for Arabic text
 - [ ] Accessibility labels
+- [ ] Make audio player work on web
 
 ## Phase 8: Realm Data Extraction (Verse-Level Highlighting)
 - [ ] Write a script to export `quran.realm` to JSON (verse markers + highlight coordinates)

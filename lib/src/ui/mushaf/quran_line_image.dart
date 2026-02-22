@@ -16,6 +16,13 @@ class QuranLineImage extends StatelessWidget {
   final int line;
   final List<VerseHighlightData> highlights;
   final VoidCallback? onTap;
+
+  /// Optional highlight color — defaults to gold if not provided.
+  final Color? highlightColor;
+
+  /// Optional text color — when provided, tints the line image so text
+  /// contrasts against dark backgrounds (uses BlendMode.srcIn).
+  final Color? textColor;
   final void Function(double tapRatio)? onTapUpExact;
 
   /// Verse markers that end on this line (for rendering VerseFasel).
@@ -32,6 +39,8 @@ class QuranLineImage extends StatelessWidget {
     this.onTap,
     this.onTapUpExact,
     this.markers = const [],
+    this.highlightColor,
+    this.textColor,
   });
 
   @override
@@ -81,9 +90,8 @@ class QuranLineImage extends StatelessWidget {
                       bottom: 0,
                       child: Container(
                         decoration: BoxDecoration(
-                          color: const Color(
-                            0xFFD4A574,
-                          ).withValues(alpha: 0.25),
+                          color: (highlightColor ?? const Color(0xFFD4A574))
+                              .withValues(alpha: 0.25),
                           borderRadius: BorderRadius.circular(4),
                         ),
                       ),
@@ -95,6 +103,8 @@ class QuranLineImage extends StatelessWidget {
                   assetPath,
                   package: 'imad_flutter',
                   fit: BoxFit.contain,
+                  color: textColor,
+                  colorBlendMode: textColor != null ? BlendMode.srcIn : null,
                   errorBuilder: (context, error, stackTrace) {
                     return const SizedBox.shrink();
                   },
