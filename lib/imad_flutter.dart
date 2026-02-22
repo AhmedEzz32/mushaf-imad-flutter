@@ -94,6 +94,7 @@ export 'src/ui/mushaf/chapter_index_drawer.dart';
 // Quran Data
 export 'src/data/quran/quran_data_provider.dart';
 export 'src/data/quran/quran_metadata.dart';
+export 'src/data/quran/verse_data_provider.dart';
 
 // Hive Database Implementations
 export 'src/data/local/hive_database_service.dart';

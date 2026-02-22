@@ -23,6 +23,7 @@ flutter:
 
   assets:
     - assets/ayah_timing/
+    - assets/quran_verse_data.json
     - assets/quran-images/1/
     - assets/quran-images/2/
     - assets/quran-images/3/

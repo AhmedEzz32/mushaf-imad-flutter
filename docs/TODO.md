@@ -1,5 +1,9 @@
 # imad_flutter — TODO
 
+## Bugs / High Priority
+- [ ] Verse separators (VerseFasel) not showing on Mushaf pages — need marker position data from Realm
+- [ ] Highlight should be per-verse region, not per line — need highlight coordinate data from Realm
+
 ## Phase 1: Hive Database Implementation
 - [x] Add `hive` and `hive_flutter` to `pubspec.yaml`
 - [x] Create `HiveDatabaseService` implementing `DatabaseService`
@@ -34,10 +38,13 @@
 - [ ] Create `ThemePickerWidget`
 - [ ] Apply `ReadingTheme` colors to Mushaf pages
 
-## Phase 4: Preferences Persistence
+## Phase 4: Preferences Persistence & UI
 - [ ] Replace in-memory `DefaultPreferencesRepository` with Hive/SharedPreferences-backed version
 - [ ] Persist mushaf type, current page, font size, reciter selection, theme config
 - [ ] Restore last-read position on app launch
+- [ ] Create `SettingsPage` widget with working controls that reflect on actual UI
+- [ ] Theme switching (light/dark/sepia/AMOLED) should update Mushaf page background + text color
+- [ ] Font size changes should apply immediately
 
 ## Phase 5: Data Import/Export
 - [ ] Complete `DefaultDataExportRepository` implementation

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../data/quran/quran_data_provider.dart';
+import '../../data/quran/verse_data_provider.dart';
 import 'quran_page_widget.dart';
 
 /// MushafPageView — the main Mushaf reader screen.
@@ -41,17 +42,24 @@ class MushafPageView extends StatefulWidget {
 class MushafPageViewState extends State<MushafPageView> {
   late PageController _pageController;
   int _currentPage = 1;
-  int? _selectedLine;
+  int? _selectedVerseKey; // chapterNumber * 1000 + verseNumber
   bool _showControls = true;
 
   @override
   void initState() {
     super.initState();
     _currentPage = widget.initialPage.clamp(1, QuranDataProvider.totalPages);
-    // RTL: page 1 is the last index so we can swipe right → forward
     _pageController = PageController(
       initialPage: QuranDataProvider.totalPages - _currentPage,
     );
+    _loadVerseData();
+  }
+
+  Future<void> _loadVerseData() async {
+    await VerseDataProvider.instance.initialize();
+    if (mounted) {
+      setState(() {});
+    }
   }
 
   @override
@@ -65,7 +73,7 @@ class MushafPageViewState extends State<MushafPageView> {
     final clampedPage = page.clamp(1, QuranDataProvider.totalPages);
     setState(() {
       _currentPage = clampedPage;
-      _selectedLine = null;
+      _selectedVerseKey = null;
     });
     _pageController.jumpToPage(QuranDataProvider.totalPages - clampedPage);
   }
@@ -74,7 +82,7 @@ class MushafPageViewState extends State<MushafPageView> {
     final newPage = QuranDataProvider.totalPages - pageIndex;
     setState(() {
       _currentPage = newPage;
-      _selectedLine = null;
+      _selectedVerseKey = null;
     });
     widget.onPageChanged?.call(newPage);
   }
@@ -124,12 +132,13 @@ class MushafPageViewState extends State<MushafPageView> {
                 final pageNumber = QuranDataProvider.totalPages - index;
                 return QuranPageWidget(
                   pageNumber: pageNumber,
-                  selectedLine: pageNumber == _currentPage
-                      ? _selectedLine
+                  selectedVerseKey: pageNumber == _currentPage
+                      ? _selectedVerseKey
                       : null,
-                  onLineTap: (line) {
+                  onVerseTap: (chapter, verse) {
+                    final key = chapter * 1000 + verse;
                     setState(() {
-                      _selectedLine = _selectedLine == line ? null : line;
+                      _selectedVerseKey = _selectedVerseKey == key ? null : key;
                     });
                   },
                 );
