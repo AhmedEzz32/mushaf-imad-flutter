@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../domain/models/bookmark.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/verse.dart';
 import '../../domain/models/search_history.dart';
@@ -8,7 +9,10 @@ import '../../domain/repository/chapter_repository.dart';
 import '../../domain/repository/bookmark_repository.dart';
 import '../../domain/repository/search_history_repository.dart';
 
-/// ViewModel for Quran search functionality.
+/// ViewModel for unified Quran search functionality.
+///
+/// Matches Android's `SearchViewModel` — performs unified search across
+/// verses, chapters, and bookmarks with search history and suggestions.
 class SearchViewModel extends ChangeNotifier {
   final VerseRepository _verseRepository;
   final ChapterRepository _chapterRepository;
@@ -29,20 +33,27 @@ class SearchViewModel extends ChangeNotifier {
   String _query = '';
   List<Verse> _verseResults = [];
   List<Chapter> _chapterResults = [];
+  List<Bookmark> _bookmarkResults = [];
   List<SearchHistoryEntry> _recentSearches = [];
   List<SearchSuggestion> _suggestions = [];
   bool _isSearching = false;
-  SearchType _searchType = SearchType.verse;
+  bool _hasSearched = false;
+  String? _error;
+  SearchType _searchType = SearchType.general;
 
   // Getters
   String get query => _query;
   List<Verse> get verseResults => _verseResults;
   List<Chapter> get chapterResults => _chapterResults;
+  List<Bookmark> get bookmarkResults => _bookmarkResults;
   List<SearchHistoryEntry> get recentSearches => _recentSearches;
   List<SearchSuggestion> get suggestions => _suggestions;
   bool get isSearching => _isSearching;
+  bool get hasSearched => _hasSearched;
+  String? get error => _error;
   SearchType get searchType => _searchType;
-  int get totalResults => _verseResults.length + _chapterResults.length;
+  int get totalResults =>
+      _verseResults.length + _chapterResults.length + _bookmarkResults.length;
 
   /// Initialize search ViewModel.
   Future<void> initialize() async {
@@ -51,7 +62,7 @@ class SearchViewModel extends ChangeNotifier {
     notifyListeners();
   }
 
-  /// Perform search.
+  /// Perform unified search (matching Android SearchViewModel.search).
   Future<void> search(String query) async {
     if (query.trim().isEmpty) {
       clearResults();
@@ -60,6 +71,7 @@ class SearchViewModel extends ChangeNotifier {
 
     _query = query;
     _isSearching = true;
+    _error = null;
     notifyListeners();
 
     try {
@@ -67,18 +79,22 @@ class SearchViewModel extends ChangeNotifier {
         case SearchType.verse:
           _verseResults = await _verseRepository.searchVerses(query);
           _chapterResults = [];
+          _bookmarkResults = [];
           break;
         case SearchType.chapter:
           _chapterResults = await _chapterRepository.searchChapters(query);
           _verseResults = [];
+          _bookmarkResults = [];
           break;
         case SearchType.general:
+          // Unified search across all types (matching Android searchAll)
           _verseResults = await _verseRepository.searchVerses(query);
           _chapterResults = await _chapterRepository.searchChapters(query);
+          _bookmarkResults = await _bookmarkRepository.searchBookmarks(query);
           break;
       }
 
-      // Record search
+      // Record search in history
       await _searchHistoryRepository.recordSearch(
         query: query,
         resultCount: totalResults,
@@ -86,13 +102,16 @@ class SearchViewModel extends ChangeNotifier {
       );
 
       _recentSearches = await _searchHistoryRepository.getRecentSearches();
+      _hasSearched = true;
+    } catch (e) {
+      _error = e.toString();
     } finally {
       _isSearching = false;
       notifyListeners();
     }
   }
 
-  /// Set search type.
+  /// Set search type and re-run if active query exists.
   void setSearchType(SearchType type) {
     _searchType = type;
     notifyListeners();
@@ -104,6 +123,15 @@ class SearchViewModel extends ChangeNotifier {
     _query = '';
     _verseResults = [];
     _chapterResults = [];
+    _bookmarkResults = [];
+    _hasSearched = false;
+    _error = null;
+    notifyListeners();
+  }
+
+  /// Clear error message.
+  void clearError() {
+    _error = null;
     notifyListeners();
   }
 
@@ -111,6 +139,7 @@ class SearchViewModel extends ChangeNotifier {
   Future<void> clearHistory() async {
     await _searchHistoryRepository.clearSearchHistory();
     _recentSearches = [];
+    _suggestions = [];
     notifyListeners();
   }
 

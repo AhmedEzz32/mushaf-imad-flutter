@@ -51,6 +51,9 @@ class PageVerseData {
   final int verseID;
   final int number;
   final int chapter;
+  final String text;
+  final String textWithoutTashkil;
+  final String searchableText;
   final VerseMarkerData? marker1441;
   final List<VerseHighlightData> highlights1441;
 
@@ -58,6 +61,9 @@ class PageVerseData {
     required this.verseID,
     required this.number,
     required this.chapter,
+    this.text = '',
+    this.textWithoutTashkil = '',
+    this.searchableText = '',
     this.marker1441,
     this.highlights1441 = const [],
   });
@@ -67,6 +73,9 @@ class PageVerseData {
       verseID: json['id'] as int,
       number: json['number'] as int,
       chapter: json['chapter'] as int,
+      text: (json['text'] as String?) ?? '',
+      textWithoutTashkil: (json['textWithoutTashkil'] as String?) ?? '',
+      searchableText: (json['searchableText'] as String?) ?? '',
       marker1441: json['marker1441'] != null
           ? VerseMarkerData.fromJson(json['marker1441'] as Map<String, dynamic>)
           : null,

@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../data/quran/quran_data_provider.dart';
 import '../../di/core_module.dart';
+import '../../domain/models/bookmark.dart';
 import '../../domain/models/chapter.dart';
 import '../../domain/models/search_history.dart';
 import '../../domain/models/verse.dart';
@@ -11,9 +12,10 @@ import '../../domain/repository/search_history_repository.dart';
 import '../../domain/repository/verse_repository.dart';
 import 'search_view_model.dart';
 
-/// Full search page with verse/chapter search, recent searches, and suggestions.
+/// Full search page with unified verse/chapter/bookmark search.
 ///
-/// Uses [SearchViewModel] internally.
+/// Matches Android's `SearchView.kt` — FilterChips for type selection,
+/// search history, results grouped by type, error and empty states.
 class SearchPage extends StatefulWidget {
   /// Called when user taps a verse result.
   final void Function(int pageNumber)? onVerseSelected;
@@ -66,93 +68,222 @@ class _SearchPageState extends State<SearchPage> {
 
   @override
   Widget build(BuildContext context) {
-    final theme = Theme.of(context);
-
     return ListenableBuilder(
       listenable: _viewModel,
       builder: (context, _) {
         return Column(
           children: [
-            // Search bar
-            Padding(
-              padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
-              child: TextField(
-                controller: _searchController,
-                focusNode: _searchFocus,
-                textDirection: TextDirection.rtl,
-                decoration: InputDecoration(
-                  hintText: 'Search verses or chapters...',
-                  hintTextDirection: TextDirection.ltr,
-                  prefixIcon: const Icon(Icons.search_rounded),
-                  suffixIcon: _searchController.text.isNotEmpty
-                      ? IconButton(
-                          icon: const Icon(Icons.close_rounded),
-                          onPressed: _clearSearch,
-                        )
-                      : null,
-                  filled: true,
-                  fillColor: theme.colorScheme.surfaceContainerHighest
-                      .withValues(alpha: 0.5),
-                  border: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(16),
-                    borderSide: BorderSide.none,
-                  ),
-                  contentPadding: const EdgeInsets.symmetric(
-                    horizontal: 16,
-                    vertical: 12,
-                  ),
-                ),
-                onChanged: (value) {
-                  setState(() {}); // Rebuild suffix icon
-                },
-                onSubmitted: _performSearch,
-              ),
-            ),
+            // Search bar (matching Android SearchBar)
+            _buildSearchBar(context),
 
-            // Search type segmented control
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-              child: SegmentedButton<SearchType>(
-                segments: const [
-                  ButtonSegment(
-                    value: SearchType.verse,
-                    label: Text('Verses'),
-                    icon: Icon(Icons.format_quote_rounded, size: 18),
-                  ),
-                  ButtonSegment(
-                    value: SearchType.chapter,
-                    label: Text('Chapters'),
-                    icon: Icon(Icons.menu_book_rounded, size: 18),
-                  ),
-                  ButtonSegment(
-                    value: SearchType.general,
-                    label: Text('All'),
-                    icon: Icon(Icons.search_rounded, size: 18),
-                  ),
-                ],
-                selected: {_viewModel.searchType},
-                onSelectionChanged: (selection) {
-                  _viewModel.setSearchType(selection.first);
-                },
-              ),
-            ),
+            // Filter chips (matching Android SearchFilters)
+            _buildFilterChips(context),
 
             // Content
-            Expanded(
-              child: _viewModel.isSearching
-                  ? const Center(child: CircularProgressIndicator())
-                  : _viewModel.query.isEmpty
-                  ? _buildPreSearchContent(theme)
-                  : _buildSearchResults(theme),
-            ),
+            Expanded(child: _buildContent(context)),
           ],
         );
       },
     );
   }
 
-  /// Shows recent searches and suggestions before any search is performed.
-  Widget _buildPreSearchContent(ThemeData theme) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Search Bar
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildSearchBar(BuildContext context) {
+    final theme = Theme.of(context);
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(16, 8, 16, 4),
+      child: TextField(
+        controller: _searchController,
+        focusNode: _searchFocus,
+        textDirection: TextDirection.rtl,
+        decoration: InputDecoration(
+          hintText: 'Search verses or chapters...',
+          hintTextDirection: TextDirection.ltr,
+          prefixIcon: const Icon(Icons.search_rounded),
+          suffixIcon: _searchController.text.isNotEmpty
+              ? IconButton(
+                  icon: const Icon(Icons.clear_rounded),
+                  onPressed: _clearSearch,
+                )
+              : null,
+          filled: true,
+          fillColor: theme.colorScheme.surfaceContainerHighest.withValues(
+            alpha: 0.5,
+          ),
+          border: OutlineInputBorder(
+            borderRadius: BorderRadius.circular(24),
+            borderSide: BorderSide.none,
+          ),
+          contentPadding: const EdgeInsets.symmetric(
+            horizontal: 16,
+            vertical: 12,
+          ),
+        ),
+        onChanged: (value) => setState(() {}),
+        onSubmitted: _performSearch,
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Filter Chips (matches Android SearchFilters)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildFilterChips(BuildContext context) {
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+      child: Row(
+        children: [
+          FilterChip(
+            selected: _viewModel.searchType == SearchType.general,
+            label: const Text('All'),
+            onSelected: (_) => _viewModel.setSearchType(SearchType.general),
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            selected: _viewModel.searchType == SearchType.verse,
+            label: const Text('Verses'),
+            onSelected: (_) => _viewModel.setSearchType(SearchType.verse),
+          ),
+          const SizedBox(width: 8),
+          FilterChip(
+            selected: _viewModel.searchType == SearchType.chapter,
+            label: const Text('Chapters'),
+            onSelected: (_) => _viewModel.setSearchType(SearchType.chapter),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Content Router (matches Android SearchView when/else blocks)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildContent(BuildContext context) {
+    final theme = Theme.of(context);
+
+    // Loading state
+    if (_viewModel.isSearching) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(),
+            const SizedBox(height: 16),
+            Text(
+              'Searching...',
+              style: theme.textTheme.bodyMedium?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    // Error state (matching Android ErrorView)
+    if (_viewModel.error != null) {
+      return _buildErrorView(context);
+    }
+
+    // Empty results after search
+    if (_viewModel.hasSearched && _viewModel.totalResults == 0) {
+      return _buildEmptyResultsView(context);
+    }
+
+    // Search results
+    if (_viewModel.hasSearched) {
+      return _buildSearchResults(context);
+    }
+
+    // Initial state — search history (matching Android SearchHistoryView)
+    return _buildPreSearchContent(context);
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Error View (matching Android ErrorView)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildErrorView(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Card(
+        margin: const EdgeInsets.all(32),
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                'Error',
+                style: theme.textTheme.titleMedium?.copyWith(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+              const SizedBox(height: 8),
+              Text(
+                _viewModel.error ?? '',
+                style: theme.textTheme.bodyMedium,
+                textAlign: TextAlign.center,
+              ),
+              const SizedBox(height: 16),
+              FilledButton(
+                onPressed: _viewModel.clearError,
+                child: const Text('Dismiss'),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Empty Results View (matching Android EmptyResultsView)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildEmptyResultsView(BuildContext context) {
+    final theme = Theme.of(context);
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.search_off_rounded,
+            size: 64,
+            color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.5),
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'No results found',
+            style: theme.textTheme.titleMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            'Try different keywords',
+            style: theme.textTheme.bodyMedium?.copyWith(
+              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.7),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // ─────────────────────────────────────────────────────────────────────────
+  // Pre-Search Content (matching Android SearchHistoryView)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildPreSearchContent(BuildContext context) {
+    final theme = Theme.of(context);
+
     return ListView(
       padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
@@ -172,7 +303,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 TextButton(
                   onPressed: _viewModel.clearHistory,
-                  child: const Text('Clear'),
+                  child: const Text('Clear All'),
                 ),
               ],
             ),
@@ -190,7 +321,7 @@ class _SearchPageState extends State<SearchPage> {
               ),
         ],
 
-        // Suggestions
+        // Popular suggestions
         if (_viewModel.suggestions.isNotEmpty) ...[
           Padding(
             padding: const EdgeInsets.only(top: 20, bottom: 8),
@@ -217,7 +348,7 @@ class _SearchPageState extends State<SearchPage> {
           ),
         ],
 
-        // Empty pre-search state
+        // Empty initial state
         if (_viewModel.recentSearches.isEmpty && _viewModel.suggestions.isEmpty)
           Padding(
             padding: const EdgeInsets.only(top: 64),
@@ -239,7 +370,7 @@ class _SearchPageState extends State<SearchPage> {
                 ),
                 const SizedBox(height: 8),
                 Text(
-                  'Search by verse text or chapter name',
+                  'Search by verse text, chapter name, or bookmark',
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurfaceVariant.withValues(
                       alpha: 0.7,
@@ -253,64 +384,26 @@ class _SearchPageState extends State<SearchPage> {
     );
   }
 
-  /// Shows search results — verses and/or chapters.
-  Widget _buildSearchResults(ThemeData theme) {
+  // ─────────────────────────────────────────────────────────────────────────
+  // Search Results (matching Android SearchResults)
+  // ─────────────────────────────────────────────────────────────────────────
+
+  Widget _buildSearchResults(BuildContext context) {
+    final theme = Theme.of(context);
     final hasVerses = _viewModel.verseResults.isNotEmpty;
     final hasChapters = _viewModel.chapterResults.isNotEmpty;
-    final totalResults = _viewModel.totalResults;
-
-    if (totalResults == 0) {
-      return Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              Icons.search_off_rounded,
-              size: 64,
-              color: theme.colorScheme.onSurfaceVariant.withValues(alpha: 0.3),
-            ),
-            const SizedBox(height: 16),
-            Text(
-              'No results found',
-              style: theme.textTheme.titleMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant,
-              ),
-            ),
-            const SizedBox(height: 8),
-            Text(
-              'Try a different search term',
-              style: theme.textTheme.bodyMedium?.copyWith(
-                color: theme.colorScheme.onSurfaceVariant.withValues(
-                  alpha: 0.7,
-                ),
-              ),
-            ),
-          ],
-        ),
-      );
-    }
+    final hasBookmarks = _viewModel.bookmarkResults.isNotEmpty;
 
     return ListView(
-      padding: const EdgeInsets.symmetric(horizontal: 4),
+      padding: const EdgeInsets.symmetric(horizontal: 16),
       children: [
-        // Results count
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Text(
-            '$totalResults result${totalResults == 1 ? '' : 's'} for "${_viewModel.query}"',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ),
-
-        // Chapter results
+        // Chapter results section
         if (hasChapters) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
             child: Text(
-              'Chapters',
-              style: theme.textTheme.labelLarge?.copyWith(
+              'Chapters (${_viewModel.chapterResults.length})',
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -326,16 +419,16 @@ class _SearchPageState extends State<SearchPage> {
               },
             ),
           ),
-          if (hasVerses) const Divider(height: 24, indent: 16, endIndent: 16),
+          if (hasVerses || hasBookmarks) const SizedBox(height: 16),
         ],
 
-        // Verse results
+        // Verse results section
         if (hasVerses) ...[
           Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
             child: Text(
-              'Verses',
-              style: theme.textTheme.labelLarge?.copyWith(
+              'Verses (${_viewModel.verseResults.length})',
+              style: theme.textTheme.titleMedium?.copyWith(
                 fontWeight: FontWeight.w600,
               ),
             ),
@@ -344,6 +437,26 @@ class _SearchPageState extends State<SearchPage> {
             (verse) => _VerseResultTile(
               verse: verse,
               onTap: () => widget.onVerseSelected?.call(verse.pageNumber),
+            ),
+          ),
+          if (hasBookmarks) const SizedBox(height: 16),
+        ],
+
+        // Bookmark results section
+        if (hasBookmarks) ...[
+          Padding(
+            padding: const EdgeInsets.only(top: 8, bottom: 4),
+            child: Text(
+              'Bookmarks (${_viewModel.bookmarkResults.length})',
+              style: theme.textTheme.titleMedium?.copyWith(
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+          ..._viewModel.bookmarkResults.map(
+            (bookmark) => _BookmarkResultTile(
+              bookmark: bookmark,
+              onTap: () => widget.onVerseSelected?.call(bookmark.pageNumber),
             ),
           ),
         ],
@@ -380,7 +493,7 @@ class _RecentSearchTile extends StatelessWidget {
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Chapter Result Tile
+// Chapter Result Tile (matching Android ChapterResultItem)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _ChapterResultTile extends StatelessWidget {
@@ -392,35 +505,41 @@ class _ChapterResultTile extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
-    return ListTile(
-      leading: CircleAvatar(
-        backgroundColor: theme.colorScheme.primaryContainer,
-        radius: 18,
-        child: Text(
-          '${chapter.number}',
-          style: TextStyle(
-            fontSize: 11,
-            fontWeight: FontWeight.w700,
-            color: theme.colorScheme.onPrimaryContainer,
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: ListTile(
+        leading: CircleAvatar(
+          backgroundColor: theme.colorScheme.primary,
+          radius: 20,
+          child: Text(
+            '${chapter.number}',
+            style: TextStyle(
+              fontSize: 14,
+              fontWeight: FontWeight.bold,
+              color: theme.colorScheme.onPrimary,
+            ),
           ),
         ),
+        title: Text(
+          chapter.arabicTitle,
+          textDirection: TextDirection.rtl,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Text(
+          '${chapter.englishTitle} · ${chapter.versesCount} verses · ${chapter.isMeccan ? "Meccan" : "Medinan"}',
+          style: theme.textTheme.bodySmall?.copyWith(
+            color: theme.colorScheme.onSurfaceVariant,
+          ),
+        ),
+        onTap: onTap,
       ),
-      title: Text(
-        chapter.arabicTitle,
-        textDirection: TextDirection.rtl,
-        style: const TextStyle(fontWeight: FontWeight.w600),
-      ),
-      subtitle: Text(
-        '${chapter.englishTitle} · ${chapter.versesCount} verses · ${chapter.isMeccan ? "Meccan" : "Medinan"}',
-      ),
-      trailing: const Icon(Icons.arrow_forward_ios_rounded, size: 14),
-      onTap: onTap,
     );
   }
 }
 
 // ─────────────────────────────────────────────────────────────────────────────
-// Verse Result Tile
+// Verse Result Tile (matching Android VerseResultItem)
 // ─────────────────────────────────────────────────────────────────────────────
 
 class _VerseResultTile extends StatelessWidget {
@@ -436,40 +555,107 @@ class _VerseResultTile extends StatelessWidget {
       verse.chapterNumber,
     );
 
-    return ListTile(
-      contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-      title: Text(
-        verse.text.isNotEmpty ? verse.text : verse.textWithoutTashkil,
-        textDirection: TextDirection.rtl,
-        style: const TextStyle(fontFamily: 'serif', fontSize: 18, height: 1.8),
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: Padding(
+        padding: const EdgeInsets.all(16),
+        child: InkWell(
+          onTap: onTap,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Verse reference row
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    '${chapterData.arabicTitle} ${verse.chapterNumber}:${verse.number}',
+                    style: theme.textTheme.labelLarge?.copyWith(
+                      color: theme.colorScheme.primary,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
+                  Text(
+                    'Page ${verse.pageNumber}',
+                    style: theme.textTheme.labelMedium?.copyWith(
+                      color: theme.colorScheme.onSurfaceVariant,
+                    ),
+                  ),
+                ],
+              ),
+              const SizedBox(height: 8),
+              // Verse text
+              Text(
+                verse.text.isNotEmpty ? verse.text : verse.textWithoutTashkil,
+                textDirection: TextDirection.rtl,
+                style: const TextStyle(
+                  fontFamily: 'serif',
+                  fontSize: 18,
+                  height: 1.8,
+                ),
+                maxLines: 3,
+                overflow: TextOverflow.ellipsis,
+                textAlign: TextAlign.end,
+              ),
+            ],
+          ),
+        ),
       ),
-      subtitle: Row(
-        children: [
-          Icon(
-            Icons.menu_book_rounded,
-            size: 14,
-            color: theme.colorScheme.primary,
-          ),
-          const SizedBox(width: 4),
-          Text(
-            '${chapterData.arabicTitle} ${verse.chapterNumber}:${verse.number}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.primary,
-              fontWeight: FontWeight.w500,
+    );
+  }
+}
+
+// ─────────────────────────────────────────────────────────────────────────────
+// Bookmark Result Tile
+// ─────────────────────────────────────────────────────────────────────────────
+
+class _BookmarkResultTile extends StatelessWidget {
+  final Bookmark bookmark;
+  final VoidCallback onTap;
+
+  const _BookmarkResultTile({required this.bookmark, required this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final theme = Theme.of(context);
+    final chapterData = QuranDataProvider.instance.getChapter(
+      bookmark.chapterNumber,
+    );
+
+    return Card(
+      margin: const EdgeInsets.symmetric(vertical: 4),
+      color: theme.colorScheme.surfaceContainerHighest,
+      child: ListTile(
+        leading: Icon(Icons.bookmark_rounded, color: theme.colorScheme.primary),
+        title: Text(
+          '${chapterData.arabicTitle} ${bookmark.chapterNumber}:${bookmark.verseNumber}',
+          textDirection: TextDirection.rtl,
+          style: const TextStyle(fontWeight: FontWeight.w600),
+        ),
+        subtitle: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              'Page ${bookmark.pageNumber}',
+              style: theme.textTheme.bodySmall?.copyWith(
+                color: theme.colorScheme.onSurfaceVariant,
+              ),
             ),
-          ),
-          const SizedBox(width: 8),
-          Text(
-            'Page ${verse.pageNumber}',
-            style: theme.textTheme.bodySmall?.copyWith(
-              color: theme.colorScheme.onSurfaceVariant,
-            ),
-          ),
-        ],
+            if (bookmark.note.isNotEmpty)
+              Text(
+                bookmark.note,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: theme.textTheme.bodySmall?.copyWith(
+                  color: theme.colorScheme.onSurfaceVariant,
+                  fontStyle: FontStyle.italic,
+                ),
+              ),
+          ],
+        ),
+        onTap: onTap,
       ),
-      onTap: onTap,
     );
   }
 }

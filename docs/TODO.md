@@ -36,7 +36,15 @@
 - [x] Apply `ReadingTheme` colors to Mushaf pages
 - [x] Create `MushafThemeScope` (InheritedNotifier for shared theme state)
 
-## Phase 4: Preferences Persistence & UI
+## Phase 4: Unified Search
+- [x] Implement `SearchHistoryRepository` (record, get recent, get popular, delete, clear)
+- [x] Create/Update `SearchViewModel` to perform unified search (Verses, Chapters, Bookmarks)
+- [x] Implement search filters (All, Verses, Chapters, Bookmarks)
+- [x] Show search history and popular searches when query is empty
+- [x] Show loading indicators during search execution
+- [x] Improve `SearchPage` UI to match Android `SearchView.kt` (chips for filters, list items formatting)
+
+## Phase 5: Preferences Persistence & UI
 - [ ] Replace in-memory `DefaultPreferencesRepository` with Hive/SharedPreferences-backed version
 - [ ] Persist mushaf type, current page, font size, reciter selection, theme config
 - [ ] Restore last-read position on app launch
@@ -45,13 +53,13 @@
 - [ ] Font size changes should apply immediately
 - [ ] Add buttons to show/hide `AudioPlayerBar` 
 
-## Phase 5: Data Import/Export
+## Phase 6: Data Import/Export
 - [ ] Complete `DefaultDataExportRepository` implementation
   - [ ] Export all bookmarks, reading history, search history, preferences
   - [ ] Import with merge or replace strategies
 - [ ] Add file picker integration for import/export
 
-## Phase 6: Testing
+## Phase 7: Testing
 - [ ] Unit tests for domain models
 - [ ] Unit tests for repository implementations
 - [ ] Unit tests for cache services
@@ -59,7 +67,7 @@
 - [ ] Widget tests for UI components
 - [ ] Integration tests for the example app
 
-## Phase 7: Polish
+## Phase 8: Polish
 - [ ] Add chapter grouping logic (`getChaptersByPart`, `getChaptersByHizb`, `getChaptersByType`)
 - [ ] Implement reading streak calculation in `DefaultReadingHistoryRepository`
 - [ ] Add proper error handling throughout repositories
@@ -68,7 +76,7 @@
 - [ ] Accessibility labels
 - [ ] Make audio player work on web
 
-## Phase 8: Realm Data Extraction (Verse-Level Highlighting)
+## Phase 9: Realm Data Extraction (Verse-Level Highlighting)
 - [ ] Write a script to export `quran.realm` to JSON (verse markers + highlight coordinates)
 - [ ] Create `quran_data.json` bundled asset with per-verse marker/highlight data
 - [ ] Update `QuranDataProvider` to load verse-level highlight/marker data

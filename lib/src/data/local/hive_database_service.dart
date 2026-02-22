@@ -9,6 +9,7 @@ import '../../domain/models/quarter.dart';
 import '../../domain/models/verse.dart';
 import '../quran/quran_data_provider.dart';
 import '../quran/quran_metadata.dart';
+import '../quran/verse_data_provider.dart';
 import '../repository/database_service.dart';
 
 /// Hive/in-memory implementation of [DatabaseService] using static Quran metadata.
@@ -260,7 +261,42 @@ class HiveDatabaseService implements DatabaseService {
   // MARK: - Search
 
   @override
-  Future<List<Verse>> searchVerses(String query) async => []; // Needs verse data
+  Future<List<Verse>> searchVerses(String query) async {
+    if (query.trim().isEmpty) return [];
+
+    final verseProvider = VerseDataProvider.instance;
+    if (!verseProvider.isLoaded) await verseProvider.initialize();
+
+    final results = <Verse>[];
+    final queryLower = query.toLowerCase();
+
+    // Search across all pages
+    for (int page = 1; page <= QuranDataProvider.totalPages; page++) {
+      final verses = verseProvider.getVersesForPage(page);
+      for (final v in verses) {
+        if (v.searchableText.contains(queryLower) ||
+            v.text.contains(query) ||
+            v.textWithoutTashkil.contains(query)) {
+          results.add(
+            Verse(
+              verseID: v.verseID,
+              humanReadableID: '${v.chapter}_${v.number}',
+              number: v.number,
+              text: v.text,
+              textWithoutTashkil: v.textWithoutTashkil,
+              uthmanicHafsText: '',
+              hafsSmartText: '',
+              searchableText: v.searchableText,
+              chapterNumber: v.chapter,
+              pageNumber: page,
+            ),
+          );
+        }
+      }
+    }
+
+    return results;
+  }
 
   @override
   Future<List<Chapter>> searchChapters(String query) async {
